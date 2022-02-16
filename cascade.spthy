@@ -1,0 +1,53 @@
+theory Test
+begin
+
+builtins: hashing, asymmetric-encryption
+
+rule Register_pk:
+    [ Fr(~ltk) ]
+  -->
+    [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)) ]
+
+
+rule Get_pk:
+    [ !Pk(A, pubkey) ]
+  -->
+    [ Out(pubkey) ]
+
+rule Reveal_ltk:
+    [ !Ltk(A, ltk) ]
+  --[ LtkReveal(A) ]->
+    [ Out(ltk) ]
+
+rule Client_A_send:
+        [ Fr(~m)
+        , !Pk($A, pkA)
+        ]
+    -->
+        [Out(aenc(~m, pkA))]
+
+rule Client_B_recv_send:
+        [ !Ltk(B, ~ltkB)
+        , !Pk($A, pkA)
+        , In( message )
+        ]
+    --[First($A,message)]->
+        [Out(aenc(adec(message, ~ltkB), pkA))]
+
+rule Client_A_recv:
+        [ In( message )
+        , !Ltk(A, ~ltkA)
+        ]
+    --[Last(A, adec(message, ~ltkA))]->
+        []
+
+lemma First_Lemma:
+"
+    not(
+      Ex A message #i #j.
+        Last(A, message) @ #i
+      & K(message) @ #j
+      & not(Ex #r. LtkReveal(A) @ r)
+    )
+"
+end
